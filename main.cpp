@@ -119,6 +119,7 @@ class AStarSearch{
 				if(node.fStar < temp.next->fStar){
 					node.next = temp.next->next;
 					temp.next->next == NULL;
+					this->listInsert(*temp.next, this->closeList);
 					temp.next = &node;
 					return;
 				}
@@ -142,16 +143,15 @@ class AStarSearch{
 	}
 	/**
 	AstarNode* constructChildList(AstarNode currentNode){
-		//no idea figure out later
-		return &currentNode;
+		//construct child list creates a node for every possible move from current node that hasn't already been visited, sets their parent to currentnode, and pushes all of them onto the childlist stack.
 	}
 	**/
-	void listInsert(AstarNode node){
-		if(this->openList->next == NULL){
-			this->openList->next = &node;
+	void listInsert(AstarNode node, AstarNode* list){
+		if(list->next == NULL){
+			list->next = &node;
 		}
 		else{
-			AstarNode temp = *this->openList->next;
+			AstarNode temp = *list->next;
 			while(temp.next != NULL){
 				if(temp.next->fStar > node.fStar)
 					break;
@@ -205,7 +205,7 @@ int main(int argc, char* argv[]){
 	AStar.startNode.gStar = 0;
 	AStar.startNode.hStar = AStar.computeHstar(AStar.startNode);
 	AStar.startNode.fStar = AStar.startNode.hStar;
-	AStar.listInsert(AStar.startNode);
+	AStar.listInsert(AStar.startNode, AStar.openList);
 	AstarNode currentNode;
 	//step 9 loop
 	do{
@@ -229,7 +229,7 @@ int main(int argc, char* argv[]){
 		child.fStar = child.gStar + child.hStar;
 		//step 7
 		if(!AStar.inList(child, AStar.openList) && !AStar.inList(child, AStar.closeList)){
-			AStar.listInsert(child);
+			AStar.listInsert(child,AStar.openList);
 		}
 		else if(AStar.inList(child, AStar.openList)){
 			if(AStar.betterF(child, AStar.openList)){
@@ -239,7 +239,7 @@ int main(int argc, char* argv[]){
 		else if(AStar.inList(child, AStar.closeList)){
 			if(AStar.betterF(child, AStar.closeList)){
 				AStar.listRemove(AStar.closeList);
-				AStar.listInsert(child);
+				AStar.listInsert(child, AStar.openList);
 			}
 		}
 		debug<<"This is Open List:"<<endl;
