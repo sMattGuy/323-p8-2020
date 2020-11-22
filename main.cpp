@@ -79,6 +79,56 @@ class AStarSearch{
 		else
 			return checkAncestors(*currentNode.parent);
 	}
+	bool inList(AstarNode node, AstarNode* list){
+		if(list->next == NULL){
+			return false;
+		}
+		AstarNode temp = *list->next; 
+		while(temp.next != NULL){
+			if(match(node.configuration, temp.configuration)){
+				return true;
+			}
+			temp = *temp.next;
+		}
+		return false;
+	}
+	bool betterF(AstarNode node, AstarNode* list){
+		if(list->next == NULL){
+			return false;
+		}
+		AstarNode temp = *list->next; 
+		while(temp.next != NULL){
+			if(match(node.configuration, temp.next->configuration)){
+				if(node.fStar < temp.next->fStar){
+					return true;
+				}
+				else
+					return false;
+			}
+			temp = *temp.next;
+		}
+		return false;
+	}
+	void swapNode(AstarNode node, AstarNode* list){
+		if(list->next == NULL){
+			return;
+		}
+		AstarNode temp = *list->next; 
+		while(temp.next != NULL){
+			if(match(node.configuration, temp.next->configuration)){
+				if(node.fStar < temp.next->fStar){
+					node.next = temp.next->next;
+					temp.next->next == NULL;
+					temp.next = &node;
+					return;
+				}
+				else
+					return;
+			}
+			temp = *temp.next;
+		}
+		return;
+	}
 	
 	AstarNode listRemove(AstarNode* list){
 		if(list->next == NULL){
@@ -93,6 +143,7 @@ class AStarSearch{
 	/**
 	AstarNode* constructChildList(AstarNode currentNode){
 		//no idea figure out later
+		return &currentNode;
 	}
 	**/
 	void listInsert(AstarNode node){
@@ -151,8 +202,56 @@ int main(int argc, char* argv[]){
 	inFile1.close();
 	inFile2.close();
 	//step 1
-	
-	
-	
+	AStar.startNode.gStar = 0;
+	AStar.startNode.hStar = AStar.computeHstar(AStar.startNode);
+	AStar.startNode.fStar = AStar.startNode.hStar;
+	AStar.listInsert(AStar.startNode);
+	AstarNode currentNode;
+	//step 9 loop
+	do{
+		//step 2
+		currentNode = AStar.listRemove(AStar.openList);
+		//step 3
+		if(AStar.isGoalNode(currentNode)){
+			AStar.printSolution(currentNode, results);
+			return 0;
+		}
+		//step 4
+		
+		//AStar.childList = AStar.constructChildList(currentNode);
+		
+		//step 5
+		AstarNode child = AStar.listRemove(AStar.childList);
+		child.parent = &currentNode;
+		//step 6
+		child.gStar = AStar.computeGstar(child);
+		child.hStar = AStar.computeHstar(child);
+		child.fStar = child.gStar + child.hStar;
+		//step 7
+		if(!AStar.inList(child, AStar.openList) && !AStar.inList(child, AStar.closeList)){
+			AStar.listInsert(child);
+		}
+		else if(AStar.inList(child, AStar.openList)){
+			if(AStar.betterF(child, AStar.openList)){
+				AStar.swapNode(child, AStar.openList);
+			}
+		}
+		else if(AStar.inList(child, AStar.closeList)){
+			if(AStar.betterF(child, AStar.closeList)){
+				AStar.listRemove(AStar.closeList);
+				AStar.listInsert(child);
+			}
+		}
+		debug<<"This is Open List:"<<endl;
+		AStar.printList(AStar.openList,debug);
+		debug<<"This is Close List:"<<endl;
+		AStar.printList(AStar.closeList, debug);
+	}while(!AStar.match(currentNode.configuration, AStar.goalNode.configuration) || AStar.openList->next == NULL);
+	if(AStar.openList->next == NULL && !AStar.match(currentNode.configuration, AStar.goalNode.configuration)){
+		debug<<"ERROR! OPEN LIST EMPTY WITHOUT GOAL BEING FOUND"<<endl;
+		return -1;
+	}
+	debug.close();
+	results.close();
 	return 0;
 }
