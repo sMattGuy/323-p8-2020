@@ -207,7 +207,7 @@ int main(int argc, char* argv[]){
 	AStar.startNode.fStar = AStar.startNode.hStar;
 	AStar.listInsert(AStar.startNode, AStar.openList);
 	AstarNode currentNode;
-	//step 9 loop
+	//step 10 loop
 	do{
 		//step 2
 		currentNode = AStar.listRemove(AStar.openList);
@@ -217,40 +217,46 @@ int main(int argc, char* argv[]){
 			return 0;
 		}
 		//step 4
-		
-		//AStar.childList = AStar.constructChildList(currentNode);
-		
-		//step 5
-		AstarNode child = AStar.listRemove(AStar.childList);
-		child.parent = &currentNode;
-		//step 6
-		child.gStar = AStar.computeGstar(child);
-		child.hStar = AStar.computeHstar(child);
-		child.fStar = child.gStar + child.hStar;
-		//step 7
-		if(!AStar.inList(child, AStar.openList) && !AStar.inList(child, AStar.closeList)){
-			AStar.listInsert(child,AStar.openList);
-		}
-		else if(AStar.inList(child, AStar.openList)){
-			if(AStar.betterF(child, AStar.openList)){
-				AStar.swapNode(child, AStar.openList);
+		AStar.childList = AStar.constructChildList(currentNode);
+		//step 8 loop
+		while(AStar.childList->next != NULL){
+			//step 5
+			AstarNode child = AStar.listRemove(AStar.childList);
+			//step 6
+			child.gStar = AStar.computeGstar(child);
+			child.hStar = AStar.computeHstar(child);
+			child.fStar = child.gStar + child.hStar;
+			//step 7
+			if(!AStar.inList(child, AStar.openList) && !AStar.inList(child, AStar.closeList)){
+				AStar.listInsert(child,AStar.openList);
+				child.parent = &currentNode;
+			}
+			else if(AStar.inList(child, AStar.openList)){
+				if(AStar.betterF(child, AStar.openList)){
+					AStar.swapNode(child, AStar.openList);
+					child.parent = &currentNode;
+				}
+			}
+			else if(AStar.inList(child, AStar.closeList)){
+				if(AStar.betterF(child, AStar.closeList)){
+					AStar.listRemove(AStar.closeList);
+					AStar.listInsert(child, AStar.openList);
+					child.parent = &currentNode;
+				}
 			}
 		}
-		else if(AStar.inList(child, AStar.closeList)){
-			if(AStar.betterF(child, AStar.closeList)){
-				AStar.listRemove(AStar.closeList);
-				AStar.listInsert(child, AStar.openList);
-			}
-		}
+		//step 9
 		debug<<"This is Open List:"<<endl;
 		AStar.printList(AStar.openList,debug);
 		debug<<"This is Close List:"<<endl;
 		AStar.printList(AStar.closeList, debug);
 	}while(!AStar.match(currentNode.configuration, AStar.goalNode.configuration) || AStar.openList->next == NULL);
+	//step 11
 	if(AStar.openList->next == NULL && !AStar.match(currentNode.configuration, AStar.goalNode.configuration)){
 		debug<<"ERROR! OPEN LIST EMPTY WITHOUT GOAL BEING FOUND"<<endl;
 		return -1;
 	}
+	//step 12
 	debug.close();
 	results.close();
 	return 0;
