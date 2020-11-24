@@ -13,21 +13,28 @@ class AstarNode{
 	AstarNode* next;
 	
 	AstarNode(){
-		this->configuration[9] = {0};
+		for(int i=0;i<9;i++)
+			this->configuration[i] = 0;
 		this->gStar = 0;
 		this->hStar = 0;
 		this->fStar = 0;
-		this->parent = NULL;
-		this->next = NULL;
+		this->parent = nullptr;
+		this->next = nullptr;
 	}
 	
 	void printNode(ofstream& output){
+		output<<this<<" | ";
 		for(int i=0;i<9;i++){
 			output<<this->configuration[i]<<" ";
 		}
-		output<<this->fStar<<" ";
-		for(int i=0;i<9;i++){
-			output<<this->parent->configuration[i]<<" ";
+		output<<"| "<<this->fStar<<" | ";
+		if(this->parent == nullptr){
+			output<<"NULL";
+		}
+		else{
+			for(int i=0;i<9;i++){
+				output<<this->parent->configuration[i]<<" ";
+			}
 		}
 		output<<endl;
 	}
@@ -44,23 +51,22 @@ class AStarSearch{
 	AStarSearch(){
 		this->openList = new AstarNode();
 		this->closeList = new AstarNode();
-		this->childList = NULL;
+		this->childList = nullptr;
 	}
-	
-	int computeGstar(AstarNode node){
+	//simple methods
+	int computeGstar(AstarNode* node){
 		int temp;
-		temp = node.parent->gStar + 1;
+		temp = node->parent->gStar + 1;
 		return temp;
 	}
-	int computeHstar(AstarNode node){
+	int computeHstar(AstarNode* node){
 		int miss = 0;
 		for(int i=0; i<9;i++){
-			if(node.configuration[i] != this->goalNode.configuration[i])
+			if(node->configuration[i] != this->goalNode.configuration[i])
 				miss++;
 		}
 		return miss;
 	}
-	
 	bool match(int config1[], int config2[]){
 		for(int i=0;i<9;i++){
 			if(config1[i] != config2[i])
@@ -68,110 +74,255 @@ class AStarSearch{
 		}
 		return true;
 	}
-	bool isGoalNode(AstarNode node){
-		return this->match(node.configuration, this->goalNode.configuration);
+	bool isGoalNode(AstarNode* node){
+		return this->match(node->configuration, this->goalNode.configuration);
 	}
-	bool checkAncestors(AstarNode currentNode){
-		if(this->match(currentNode.configuration, this->startNode.configuration))
-			return false;
-		else if(this->match(currentNode.configuration, this->startNode.configuration))
-			return true;
-		else
-			return checkAncestors(*currentNode.parent);
-	}
-	bool inList(AstarNode node, AstarNode* list){
-		if(list->next == NULL){
+	//complex methods
+	bool checkAncestors(AstarNode* currentNode, AstarNode* parent){
+		if(parent == nullptr){
 			return false;
 		}
-		AstarNode temp = *list->next; 
-		while(temp.next != NULL){
-			if(match(node.configuration, temp.configuration)){
+		else if(this->match(currentNode->configuration, parent->configuration)){
+			return true;
+		}
+		else{
+			return this->checkAncestors(currentNode, parent->parent);
+		}
+	}
+	void push(AstarNode* node, AstarNode** list){
+		AstarNode* temp = *list;
+		if(temp->next == nullptr){
+			temp->next = node;
+		}
+		else{
+			node->next = temp->next;
+			temp->next = node;
+		}
+	}
+	
+	AstarNode* constructChildList(AstarNode* currentNode, ofstream& output){
+		AstarNode* dummy = new AstarNode();
+		for(int i=0;i<9;i++){
+			if(currentNode->configuration[i] == 0){
+				if(i+1 < 9){
+					int temp = 0;
+					AstarNode* newNode = new AstarNode();
+					//configuration copy
+					for(int j=0;j<9;j++)
+						newNode->configuration[j] = currentNode->configuration[j];
+					//swap	
+					temp = newNode->configuration[i];
+					newNode->configuration[i] = newNode->configuration[i+1];
+					newNode->configuration[i+1] = temp;
+					//g h f star assignment
+					newNode->parent = currentNode;
+					newNode->gStar = this->computeGstar(newNode);
+					newNode->hStar = this->computeHstar(newNode);
+					newNode->fStar = newNode->gStar + newNode->hStar;
+					//output<<"new +1 node:\n";
+					//newNode->printNode(output);
+					if(!this->checkAncestors(newNode,currentNode)){
+						this->push(newNode, &dummy);
+					}
+					else{
+						//output<<"failed to insert\n";
+						delete newNode;
+					}
+				}
+				if(i+3 < 9){
+					int temp = 0;
+					AstarNode* newNode = new AstarNode();
+					//configuration copy
+					for(int j=0;j<9;j++)
+						newNode->configuration[j] = currentNode->configuration[j];
+					//swap	
+					temp = newNode->configuration[i];
+					newNode->configuration[i] = newNode->configuration[i+3];
+					newNode->configuration[i+3] = temp;
+					//g h f star assignment
+					newNode->parent = currentNode;
+					newNode->gStar = this->computeGstar(newNode);
+					newNode->hStar = this->computeHstar(newNode);
+					newNode->fStar = newNode->gStar + newNode->hStar;
+					//output<<"new +3 node:\n";
+					//newNode->printNode(output);
+					if(!this->checkAncestors(newNode,currentNode)){
+						this->push(newNode, &dummy);
+					}
+					else{
+						//output<<"failed to insert\n";
+						delete newNode;
+					}
+				}
+				if(i-1 >= 0){
+					int temp = 0;
+					AstarNode* newNode = new AstarNode();
+					//configuration copy
+					for(int j=0;j<9;j++)
+						newNode->configuration[j] = currentNode->configuration[j];
+					//swap	
+					temp = newNode->configuration[i];
+					newNode->configuration[i] = newNode->configuration[i-1];
+					newNode->configuration[i-1] = temp;
+					//g h f star assignment
+					newNode->parent = currentNode;
+					newNode->gStar = this->computeGstar(newNode);
+					newNode->hStar = this->computeHstar(newNode);
+					newNode->fStar = newNode->gStar + newNode->hStar;
+					//output<<"new -1 node:\n";
+					//newNode->printNode(output);
+					if(!this->checkAncestors(newNode,currentNode)){
+						this->push(newNode, &dummy);
+					}
+					else{
+						//output<<"failed to insert\n";
+						delete newNode;
+					}
+				}
+				if(i-3 >= 0){
+					int temp = 0;
+					AstarNode* newNode = new AstarNode();
+					//configuration copy
+					for(int j=0;j<9;j++)
+						newNode->configuration[j] = currentNode->configuration[j];
+					//swap	
+					temp = newNode->configuration[i];
+					newNode->configuration[i] = newNode->configuration[i-3];
+					newNode->configuration[i-3] = temp;
+					//g h f star assignment
+					newNode->parent = currentNode;
+					newNode->gStar = this->computeGstar(newNode);
+					newNode->hStar = this->computeHstar(newNode);
+					newNode->fStar = newNode->gStar + newNode->hStar;
+					//output<<"new -3 node:\n";
+					//newNode->printNode(output);
+					if(!this->checkAncestors(newNode,currentNode)){
+						this->push(newNode, &dummy);
+					}
+					else{
+						//output<<"failed to insert\n";
+						delete newNode;
+					}
+				}
+				return dummy;
+			}
+		}
+		return nullptr;
+	}
+	void listInsert(AstarNode* node, AstarNode** list){
+		AstarNode* temp = *list;
+		if(temp->next == nullptr){
+			temp->next = node;
+		}
+		else{
+			while(temp->next != nullptr){
+				if(temp->next->fStar > node->fStar)
+					break;
+				temp = temp->next;
+			}
+			if(temp->next == nullptr){
+				temp->next = node;
+			}
+			else{
+				node->next = temp->next;
+				temp->next = node;
+			}
+		}
+	}
+	AstarNode* listRemove(AstarNode** list){
+		AstarNode* listhead= *list;
+		if(listhead->next == nullptr){
+			cout<<"ERROR! TRIED REMOVING FROM EMPTY LIST.\n";
+			exit(-1);
+		}
+		AstarNode* temp = listhead->next;
+		listhead->next = listhead->next->next;
+		temp->next = nullptr;
+		return temp;
+	}
+	//printing methods
+	void printList(AstarNode** list, ofstream& outfile1){
+		AstarNode* temp = *list;
+		while(temp != nullptr){
+			temp->printNode(outfile1);
+			temp = temp->next;
+		}
+		outfile1<<"~~~~~~~~~~~~~\n";
+	}
+	void printSolution(AstarNode* currentNode, ofstream& outfile2){
+		cout<<endl<<"hurray"<<endl;
+		outfile2<<"uggg\n";
+	}
+	//helper methods not on specs
+	void swapNode(AstarNode* node, AstarNode** list, bool flag){
+		AstarNode* listhead = *list;
+		if(listhead->next == nullptr){
+			return;
+		}
+		AstarNode* temp = listhead->next; 
+		while(temp->next != nullptr){
+			if(match(node->configuration, temp->next->configuration)&&flag){
+				if(node->fStar < temp->next->fStar){
+					AstarNode* bye = temp->next;
+					temp->next = temp->next->next;
+					bye->next = nullptr;
+					this->listInsert(bye,&this->closeList);
+					return;
+				}
+				else
+					return;
+			}
+			else if(match(node->configuration, temp->next->configuration)&&!flag){
+				if(node->fStar < temp->next->fStar){
+					AstarNode* bye = temp->next;
+					temp->next = temp->next->next;
+					bye->next = nullptr;
+					return;
+				}
+				else
+					return;
+			}
+			temp = temp->next;
+		}
+		return;
+	}
+	bool inList(AstarNode* node, AstarNode** list){
+		AstarNode* listhead = *list;
+		if(listhead->next == nullptr){
+			return false;
+		}
+		AstarNode* temp = listhead->next; 
+		while(temp->next != nullptr){
+			if(match(node->configuration, temp->configuration )&& node->fStar < temp->fStar){
 				return true;
 			}
-			temp = *temp.next;
+			else if(match(node->configuration, temp->configuration) && !(node->fStar < temp->fStar)){
+				return false;
+			}
+			temp = temp->next;
 		}
 		return false;
 	}
-	bool betterF(AstarNode node, AstarNode* list){
-		if(list->next == NULL){
+	/**
+	bool betterF(AstarNode* node, AstarNode** list){
+		AstarNode* listhead = *list;
+		if(listhead->next == nullptr){
 			return false;
 		}
-		AstarNode temp = *list->next; 
-		while(temp.next != NULL){
-			if(match(node.configuration, temp.next->configuration)){
-				if(node.fStar < temp.next->fStar){
+		AstarNode* temp = listhead->next; 
+		while(temp->next != nullptr){
+			if(match(node->configuration, temp->next->configuration)){
+				if(node->fStar < temp->next->fStar){
 					return true;
 				}
 				else
 					return false;
 			}
-			temp = *temp.next;
+			temp = temp->next;
 		}
 		return false;
 	}
-	void swapNode(AstarNode node, AstarNode* list){
-		if(list->next == NULL){
-			return;
-		}
-		AstarNode temp = *list->next; 
-		while(temp.next != NULL){
-			if(match(node.configuration, temp.next->configuration)){
-				if(node.fStar < temp.next->fStar){
-					node.next = temp.next->next;
-					temp.next->next == NULL;
-					this->listInsert(*temp.next, this->closeList);
-					temp.next = &node;
-					return;
-				}
-				else
-					return;
-			}
-			temp = *temp.next;
-		}
-		return;
-	}
-	
-	AstarNode listRemove(AstarNode* list){
-		if(list->next == NULL){
-			cout<<"ERROR! TRIED REMOVING FROM EMPTY LIST.\n";
-			exit(-1);
-		}
-		AstarNode temp = *list->next;
-		list->next = list->next->next;
-		temp.next = NULL;
-		return temp;
-	}
-	/**
-	AstarNode* constructChildList(AstarNode currentNode){
-		//construct child list creates a node for every possible move from current node that hasn't already been visited, sets their parent to currentnode, and pushes all of them onto the childlist stack.
-	}
 	**/
-	void listInsert(AstarNode node, AstarNode* list){
-		if(list->next == NULL){
-			list->next = &node;
-		}
-		else{
-			AstarNode temp = *list->next;
-			while(temp.next != NULL){
-				if(temp.next->fStar > node.fStar)
-					break;
-				temp = *temp.next;
-			}
-			if(temp.next == NULL){
-				temp.next = &node;
-			}
-			else{
-				node.next = temp.next;
-				temp.next = &node;
-			}
-		}
-	}
-	void printList(AstarNode* list, ofstream& outfile1){
-		
-	}
-	void printSolution(AstarNode currentNode, ofstream& outfile2){
-		
-	}
 };
 
 int main(int argc, char* argv[]){
@@ -203,56 +354,82 @@ int main(int argc, char* argv[]){
 	inFile2.close();
 	//step 1
 	AStar.startNode.gStar = 0;
-	AStar.startNode.hStar = AStar.computeHstar(AStar.startNode);
+	AStar.startNode.hStar = AStar.computeHstar(&AStar.startNode);
 	AStar.startNode.fStar = AStar.startNode.hStar;
-	AStar.listInsert(AStar.startNode, AStar.openList);
-	AstarNode currentNode;
+	AStar.listInsert(&AStar.startNode, &AStar.openList);
+	/**debug code
+	debug<<"Printing Goal:\n";
+	AStar.goalNode.printNode(debug);
+	debug<<"Debugging after inserting startnode:\n";
+	AStar.startNode.printNode(debug);
+	AStar.printList(&AStar.openList, debug);
+	**/
+	AstarNode* currentNode;
+	int counter = 0;
 	//step 10 loop
 	do{
 		//step 2
-		currentNode = AStar.listRemove(AStar.openList);
+		currentNode = AStar.listRemove(&AStar.openList);
+		AStar.listInsert(currentNode, &AStar.closeList);
+		//debug<<"Loop number:"<<counter<<endl;
+		//debug<<"Outputting current node:\n";
+		//currentNode->printNode(debug);
 		//step 3
 		if(AStar.isGoalNode(currentNode)){
 			AStar.printSolution(currentNode, results);
 			return 0;
 		}
 		//step 4
-		AStar.childList = AStar.constructChildList(currentNode);
+		AStar.childList = AStar.constructChildList(currentNode, debug);
+		//debug<<"Debugging after creating Child List:\n";
+		//AStar.printList(&AStar.childList, debug);
+		
 		//step 8 loop
-		while(AStar.childList->next != NULL){
+		while(AStar.childList->next != nullptr){
 			//step 5
-			AstarNode child = AStar.listRemove(AStar.childList);
+			AstarNode* child = AStar.listRemove(&AStar.childList);
 			//step 6
-			child.gStar = AStar.computeGstar(child);
-			child.hStar = AStar.computeHstar(child);
-			child.fStar = child.gStar + child.hStar;
+			child->gStar = AStar.computeGstar(child);
+			child->hStar = AStar.computeHstar(child);
+			child->fStar = child->gStar + child->hStar;
+			/**
+			debug<<"printing child node:\n";
+			child->printNode(debug);
+			**/
 			//step 7
-			if(!AStar.inList(child, AStar.openList) && !AStar.inList(child, AStar.closeList)){
-				AStar.listInsert(child,AStar.openList);
-				child.parent = &currentNode;
+			if(!AStar.inList(child, &AStar.openList) && !AStar.inList(child, &AStar.closeList)){
+				//debug<<"not in either list\n";
+				AStar.listInsert(child, &AStar.openList);
+				child->parent = currentNode;
 			}
-			else if(AStar.inList(child, AStar.openList)){
-				if(AStar.betterF(child, AStar.openList)){
-					AStar.swapNode(child, AStar.openList);
-					child.parent = &currentNode;
-				}
+			else if(AStar.inList(child, &AStar.openList)){
+				//debug<<"in open and better f\n";
+				AStar.swapNode(child, &AStar.openList, true);
+				AStar.listInsert(child,&AStar.openList);
+				child->parent = currentNode;
 			}
-			else if(AStar.inList(child, AStar.closeList)){
-				if(AStar.betterF(child, AStar.closeList)){
-					AStar.listRemove(AStar.closeList);
-					AStar.listInsert(child, AStar.openList);
-					child.parent = &currentNode;
-				}
+			else if(AStar.inList(child, &AStar.closeList)){
+				//debug<<"in closed and better f\n";
+				AStar.swapNode(child, &AStar.closeList, false);
+				AStar.listInsert(child, &AStar.openList);
+				child->parent = currentNode;
+			}
+			else{
+				delete child;
 			}
 		}
 		//step 9
-		debug<<"This is Open List:"<<endl;
-		AStar.printList(AStar.openList,debug);
-		debug<<"This is Close List:"<<endl;
-		AStar.printList(AStar.closeList, debug);
-	}while(!AStar.match(currentNode.configuration, AStar.goalNode.configuration) || AStar.openList->next == NULL);
+		if(counter < 20){
+			debug<<"This is Open List:"<<endl;
+			AStar.printList(&AStar.openList,debug);
+			debug<<"This is Close List:"<<endl;
+			AStar.printList(&AStar.closeList, debug);
+		}
+		counter++;
+		cout<<"Current Loops:"<<counter<<"\r";
+	}while(!AStar.match(currentNode->configuration, AStar.goalNode.configuration) || AStar.openList->next == nullptr);
 	//step 11
-	if(AStar.openList->next == NULL && !AStar.match(currentNode.configuration, AStar.goalNode.configuration)){
+	if(AStar.openList->next == nullptr && !AStar.match(currentNode->configuration, AStar.goalNode.configuration)){
 		debug<<"ERROR! OPEN LIST EMPTY WITHOUT GOAL BEING FOUND"<<endl;
 		return -1;
 	}
